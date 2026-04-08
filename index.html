@@ -125,13 +125,17 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 <div id="app">
   <div class="hdr">
     <div class="hdr-left"><span>Yamaha</span><strong>Tracer 9 / 9GT</strong></div>
-    <div class="hdr-km"><span>Odometer</span><span id="hdr-km">— km</span></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="sync-dot" onclick="sw('settings')" style="width:9px;height:9px;border-radius:50%;background:#52525B;cursor:pointer;flex-shrink:0;" title="GitHub sync — tap to configure"></div>
+      <div class="hdr-km"><span>Odometer</span><span id="hdr-km">— km</span></div>
+    </div>
   </div>
   <div class="tabs">
     <button class="tb on" id="tb-dash" onclick="sw('dash')">Dashboard</button>
     <button class="tb" id="tb-log" onclick="sw('log')">Log service</button>
     <button class="tb" id="tb-mil" onclick="sw('mil')">Mileage</button>
     <button class="tb" id="tb-hist" onclick="sw('hist')">History</button>
+    <button class="tb" id="tb-settings" onclick="sw('settings')">Settings</button>
   </div>
   <div class="content">
     <div id="notif" class="notif"></div>
@@ -195,12 +199,45 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
     <!-- HISTORY -->
     <div id="p-hist" class="pane">
-      <div class="fr jb g8" style="margin-bottom:14px;">
-        <div class="fw5" style="font-size:15px;">Service history</div>
-        <button class="btn bg2 bsm" onclick="confirmReset()" style="color:#F87171;border-color:rgba(248,113,113,0.2);">Reset app</button>
-      </div>
+      <div class="fw5" style="font-size:15px;margin-bottom:14px;">Service history</div>
       <div id="h-list"></div>
     </div>
+
+    <!-- SETTINGS -->
+    <div id="p-settings" class="pane">
+      <div class="fw5" style="font-size:15px;margin-bottom:6px;">GitHub Sync</div>
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:14px;">Saves your data automatically to your repo after every entry. Access it from any device.</p>
+      <div id="gh-status-card" class="card" style="margin-bottom:12px;display:none;">
+        <div class="fr jb g8">
+          <div><div class="fw5 sm" id="gh-status-title"></div><div class="mu sm mt4">Auto-syncing after every save</div></div>
+          <span class="bdg bg">Connected</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="fg"><label>GitHub username</label><input type="text" id="gh-user" placeholder="e.g. Alexander-Ciantar" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        <div class="fg"><label>Repository name</label><input type="text" id="gh-repo" placeholder="tracer9-maintenance" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        <div class="fg" style="margin-bottom:4px;"><label>Personal access token</label><input type="password" id="gh-token" placeholder="github_pat_..." autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        <div style="margin-bottom:16px;"><button onclick="toggleToken()" style="background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;padding:4px 0;font-family:inherit;">Show / hide token</button></div>
+        <button class="btn ba" onclick="ghConnect()" id="gh-connect-btn">Connect</button>
+        <button class="btn bg2" style="margin-top:8px;display:none;" id="gh-disconnect-btn" onclick="ghDisconnect()">Disconnect</button>
+      </div>
+      <div style="margin-top:12px;background:var(--s1);border:0.5px solid var(--b1);border-radius:var(--r);padding:14px;">
+        <div class="fw5 sm" style="margin-bottom:10px;">How to create a token</div>
+        <ol style="font-size:12px;color:var(--tx2);line-height:1.9;padding-left:16px;">
+          <li>github.com &#8594; profile picture &#8594; <strong style="color:var(--tx);">Settings</strong></li>
+          <li>Scroll to <strong style="color:var(--tx);">Developer settings</strong> (bottom left)</li>
+          <li>Personal access tokens &#8594; <strong style="color:var(--tx);">Fine-grained tokens</strong></li>
+          <li>Click <strong style="color:var(--tx);">Generate new token</strong></li>
+          <li>Repository access &#8594; select only <strong style="color:var(--tx);">tracer9-maintenance</strong></li>
+          <li>Permissions &#8594; Contents &#8594; <strong style="color:var(--tx);">Read and write</strong></li>
+          <li>Generate token and paste it above</li>
+        </ol>
+      </div>
+      <div style="margin-top:16px;text-align:center;">
+        <button onclick="if(confirm('Reset all app data? This cannot be undone.')){localStorage.removeItem(SK);localStorage.removeItem(GK);location.reload();}" style="background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;padding:8px;font-family:inherit;">Reset all data</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -254,7 +291,7 @@ let S={setup:false,currentKm:0,regDate:null,mileageLog:[],records:[]};
 const SK='t9_v3';
 
 function loadS(){try{const r=localStorage.getItem(SK);if(r)Object.assign(S,JSON.parse(r));}catch(e){}}
-function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
+function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}if(ghConfigured())ghPush();}
 
 const M1=[1000,10000,20000,30000,40000,50000,60000,70000,80000,90000,100000,110000,120000];
 const M10=[10000,20000,30000,40000,50000,60000,70000,80000,90000,100000,110000,120000];
@@ -497,14 +534,143 @@ function showN(msg){
 function today(){return new Date().toISOString().split('T')[0];}
 function fd(d){return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 
-loadS();
+loadS();loadGH();
 if(S.setup){
   document.getElementById('setup').style.display='none';
   document.getElementById('app').style.display='block';
+  if(ghConfigured()){
+    setSyncDot('syncing');
+    ghFetch().then(d=>{
+      if(d){Object.assign(S,d);localStorage.setItem(SK,JSON.stringify(S));rd();}
+      setSyncDot(d?'ok':'error');
+    });
+  }else{
+    setSyncDot('off');
+  }
   rd();
 }else{
   document.getElementById('s-date').value=today();
 }
+
+// ===== GITHUB SYNC =====
+let GH={username:'',repo:'tracer9-maintenance',token:'',sha:null};
+const GK='t9_gh_v1';
+
+function loadGH(){try{const r=localStorage.getItem(GK);if(r)Object.assign(GH,JSON.parse(r));}catch(e){}}
+function saveGH(){localStorage.setItem(GK,JSON.stringify(GH));}
+function ghConfigured(){return !!(GH.token&&GH.username&&GH.repo);}
+
+function setSyncDot(status){
+  const el=document.getElementById('sync-dot');
+  if(!el)return;
+  const c={ok:'#4ADE80',syncing:'#F59E0B',error:'#F87171',off:'#52525B'};
+  el.style.background=c[status]||c.off;
+  el.title={ok:'Synced to GitHub — tap to view settings',syncing:'Syncing to GitHub...',error:'Sync failed — tap to check settings',off:'GitHub sync not configured — tap to set up'}[status]||'';
+}
+
+async function ghFetch(){
+  if(!ghConfigured())return null;
+  try{
+    const res=await fetch('https://api.github.com/repos/'+GH.username+'/'+GH.repo+'/contents/data.json',{
+      headers:{'Authorization':'token '+GH.token,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(res.status===404)return null;
+    if(!res.ok)return null;
+    const d=await res.json();
+    GH.sha=d.sha;saveGH();
+    return JSON.parse(atob(d.content.replace(/\s/g,'')));
+  }catch(e){return null;}
+}
+
+async function ghPush(){
+  if(!ghConfigured())return false;
+  setSyncDot('syncing');
+  try{
+    const json=JSON.stringify(S,null,2);
+    const content=btoa(unescape(encodeURIComponent(json)));
+    const body={message:'Tracer 9 sync '+today(),content};
+    if(GH.sha)body.sha=GH.sha;
+    const res=await fetch('https://api.github.com/repos/'+GH.username+'/'+GH.repo+'/contents/data.json',{
+      method:'PUT',
+      headers:{'Authorization':'token '+GH.token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!res.ok){setSyncDot('error');return false;}
+    const result=await res.json();
+    GH.sha=result.content.sha;saveGH();
+    setSyncDot('ok');
+    return true;
+  }catch(e){setSyncDot('error');return false;}
+}
+
+function toggleToken(){
+  const f=document.getElementById('gh-token');
+  f.type=f.type==='password'?'text':'password';
+}
+
+function rSettings(){
+  const configured=ghConfigured();
+  document.getElementById('gh-user').value=GH.username||'';
+  document.getElementById('gh-repo').value=GH.repo||'tracer9-maintenance';
+  document.getElementById('gh-token').value=GH.token||'';
+  document.getElementById('gh-token').type='password';
+  const statusCard=document.getElementById('gh-status-card');
+  const connectBtn=document.getElementById('gh-connect-btn');
+  const disconnectBtn=document.getElementById('gh-disconnect-btn');
+  if(configured){
+    statusCard.style.display='block';
+    document.getElementById('gh-status-title').textContent=GH.username+'/'+GH.repo;
+    document.getElementById('gh-status-sub').textContent='Auto-syncing after every save';
+    const bdg=document.getElementById('gh-status-bdg');
+    bdg.textContent='Connected';
+    bdg.className='bdg bg';
+    connectBtn.textContent='Update';
+    disconnectBtn.style.display='flex';
+  }else{
+    statusCard.style.display='none';
+    connectBtn.textContent='Connect';
+    disconnectBtn.style.display='none';
+  }
+}
+
+async function ghConnect(){
+  const username=document.getElementById('gh-user').value.trim();
+  const repo=document.getElementById('gh-repo').value.trim();
+  const token=document.getElementById('gh-token').value.trim();
+  if(!username||!repo||!token){showN('Fill in all fields');return;}
+  const btn=document.getElementById('gh-connect-btn');
+  btn.textContent='Connecting…';btn.disabled=true;
+  GH.username=username;GH.repo=repo;GH.token=token;GH.sha=null;
+  saveGH();setSyncDot('syncing');
+  // Try to fetch existing data.json from repo
+  const existing=await ghFetch();
+  if(existing&&Object.keys(existing).length>0){
+    // GitHub has data — use it (it's the source of truth)
+    Object.assign(S,existing);
+    saveS();
+    showN('Connected! Data loaded from GitHub');
+  }else{
+    // No data.json yet — push current local data
+    const ok=await ghPush();
+    if(!ok){
+      showN('Connection failed. Check username, repo name and token.');
+      GH.token='';saveGH();setSyncDot('off');
+      btn.textContent='Connect';btn.disabled=false;
+      return;
+    }
+    showN('Connected! Data synced to GitHub');
+  }
+  btn.textContent='Update';btn.disabled=false;
+  rSettings();rd();
+}
+
+function ghDisconnect(){
+  if(!confirm('Disconnect GitHub sync? Your local data stays intact.'))return;
+  GH.token='';GH.sha=null;saveGH();
+  setSyncDot('off');rSettings();
+  showN('Disconnected from GitHub');
+}
+
 </script>
 </body>
 </html>
