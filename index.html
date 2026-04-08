@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracer 9">
+<meta name="theme-color" content="#0B0B0D">
+<title>Tracer 9 — Maintenance</title>
+<style>
+:root{--bg:#0B0B0D;--s1:#161618;--s2:#222225;--s3:#2E2E32;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);--b3:rgba(255,255,255,0.18);--acc:#F59E0B;--acc-bg:rgba(245,158,11,0.12);--acc-b:rgba(245,158,11,0.28);--red:#F87171;--red-bg:rgba(248,113,113,0.11);--orn:#FB923C;--orn-bg:rgba(251,146,60,0.11);--grn:#4ADE80;--grn-bg:rgba(74,222,128,0.11);--tx:#F4F4F5;--tx2:#A1A1AA;--tx3:#52525B;--r:12px;--r2:8px;--safe-top:env(safe-area-inset-top);--safe-bot:env(safe-area-inset-bottom);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;font-size:14px;line-height:1.5;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;}
+#setup{padding:0 16px 40px;padding-top:calc(16px + var(--safe-top));}
+#app{display:none;}
+
+/* Header */
+.hdr{padding:16px 16px 12px;padding-top:calc(16px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--b1);background:var(--bg);position:sticky;top:0;z-index:20;}
+.hdr-left span{font-size:11px;color:var(--tx3);display:block;}
+.hdr-left strong{font-size:17px;font-weight:600;letter-spacing:-.2px;}
+.hdr-km{font-size:22px;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums;text-align:right;}
+.hdr-km span{font-size:11px;color:var(--tx3);display:block;font-weight:400;}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:0.5px solid var(--b1);background:var(--bg);position:sticky;top:57px;z-index:19;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tb{flex:1;background:none;border:none;color:var(--tx3);font-size:12px;font-weight:500;padding:10px 8px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:inherit;transition:color .15s,border-color .15s;min-width:70px;}
+.tb.on{color:var(--acc);border-bottom-color:var(--acc);}
+
+/* Content */
+.content{padding:0 16px;padding-bottom:calc(32px + var(--safe-bot));}
+.pane{display:none;padding-top:16px;}
+.pane.on{display:block;}
+
+/* Notification */
+.notif{background:var(--s3);border:0.5px solid var(--b3);border-radius:var(--r2);padding:10px 14px;font-size:13px;display:none;margin-bottom:12px;text-align:center;animation:fadeIn .2s;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* Cards */
+.card{background:var(--s1);border:0.5px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:8px;}
+
+/* Item rows */
+.irow{display:flex;align-items:flex-start;gap:8px;padding:12px 0;border-bottom:0.5px solid var(--b1);}
+.irow:last-child{border-bottom:none;padding-bottom:0;}
+.irow:first-child{padding-top:0;}
+.irow-l{flex:1;min-width:0;}
+.irow-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;padding-top:1px;}
+.item-name{font-size:13px;font-weight:500;margin-bottom:3px;}
+.item-job{font-size:12px;color:var(--tx2);line-height:1.4;margin-bottom:3px;}
+.item-sub{font-size:11px;color:var(--tx3);}
+
+/* Badges */
+.bdg{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.br{background:var(--red-bg);color:var(--red);}
+.bo{background:var(--orn-bg);color:var(--orn);}
+.bg{background:var(--grn-bg);color:var(--grn);}
+.bn{background:var(--s2);color:var(--tx2);}
+
+/* Section headers */
+.sh{font-size:11px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;}
+
+/* Forms */
+.fg{margin-bottom:13px;}
+label{font-size:12px;color:var(--tx2);display:block;margin-bottom:5px;}
+input,select,textarea{width:100%;background:var(--s2);border:0.5px solid var(--b2);border-radius:var(--r2);color:var(--tx);font-size:15px;padding:11px 12px;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23A1A1AA' stroke-width='1.5'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+textarea{resize:none;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;width:100%;padding:13px;border-radius:var(--r2);font-size:15px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s;}
+.btn:active{opacity:.8;}
+.ba{background:var(--acc);color:#000;}
+.bg2{background:var(--s2);color:var(--tx);border:0.5px solid var(--b2);}
+.bsm{width:auto;padding:5px 12px;font-size:12px;border-radius:6px;}
+
+/* 1k banner */
+.banner-1k{background:var(--acc-bg);border:0.5px solid var(--acc-b);border-radius:var(--r);padding:14px;margin-bottom:8px;}
+.banner-1k .row2{display:flex;gap:8px;margin-top:10px;align-items:center;}
+.banner-1k input[type=date]{font-size:13px;padding:8px 10px;flex:1;}
+
+/* Utils */
+.fr{display:flex;align-items:center;}
+.jb{justify-content:space-between;}
+.g8{gap:8px;}
+.mu{color:var(--tx2);}
+.sm{font-size:12px;}
+.fw5{font-weight:500;}
+.mt4{margin-top:4px;}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div style="padding:48px 0 28px;text-align:center;">
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="display:block;margin:0 auto;">
+      <circle cx="28" cy="28" r="28" fill="#161618"/>
+      <circle cx="28" cy="28" r="14" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
+      <path d="M28 22v6l4 4" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M10 28h4M42 28h4M28 10v4M28 42v4" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-linecap="round"/>
+    </svg>
+    <div style="font-size:22px;font-weight:700;margin-top:14px;">Tracer 9</div>
+    <div style="color:#A1A1AA;font-size:13px;margin-top:4px;">Maintenance tracker</div>
+  </div>
+  <div class="card">
+    <div class="fw5" style="font-size:15px;margin-bottom:14px;">Set up your bike</div>
+    <div class="fg"><label>Current odometer (km)</label><input type="number" id="s-km" placeholder="e.g. 2400" min="0" inputmode="numeric"></div>
+    <div class="fg" style="margin-bottom:18px;"><label>Registration / purchase date</label><input type="date" id="s-date"></div>
+    <button class="btn ba" onclick="doSetup()">Get started</button>
+  </div>
+  <p style="color:#52525B;font-size:12px;text-align:center;margin-top:12px;">Data is stored locally on this device</p>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-left"><span>Yamaha</span><strong>Tracer 9 / 9GT</strong></div>
+    <div class="hdr-km"><span>Odometer</span><span id="hdr-km">— km</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tb on" id="tb-dash" onclick="sw('dash')">Dashboard</button>
+    <button class="tb" id="tb-log" onclick="sw('log')">Log service</button>
+    <button class="tb" id="tb-mil" onclick="sw('mil')">Mileage</button>
+    <button class="tb" id="tb-hist" onclick="sw('hist')">History</button>
+  </div>
+  <div class="content">
+    <div id="notif" class="notif"></div>
+
+    <!-- DASHBOARD -->
+    <div id="p-dash" class="pane on">
+      <div id="dash-prompt" style="display:none;background:var(--acc-bg);border:0.5px solid var(--acc-b);border-radius:var(--r);padding:14px;margin-bottom:8px;">
+        <div class="fr jb g8">
+          <div><div class="fw5">Time to log your mileage</div><div class="mu sm mt4">Last update was over 30 days ago</div></div>
+          <button class="btn bg2 bsm" onclick="sw('mil')">Update</button>
+        </div>
+      </div>
+      <div id="dash-1k" class="banner-1k" style="display:none;">
+        <div class="fw5">Mark your 1,000 km service as done</div>
+        <div class="mu sm mt4">Log all initial service items in one go</div>
+        <div class="row2">
+          <input type="date" id="b1k-date">
+          <button class="btn ba bsm" onclick="bulk1k()">Mark all done</button>
+        </div>
+      </div>
+      <div id="dash-body"></div>
+    </div>
+
+    <!-- LOG SERVICE -->
+    <div id="p-log" class="pane">
+      <div class="fw5" style="font-size:15px;margin-bottom:14px;">Log a service</div>
+      <div class="card">
+        <div class="fg"><label>Service item</label><select id="l-item"></select></div>
+        <div class="fr g8">
+          <div class="fg" style="flex:1;"><label>Odometer (km)</label><input type="number" id="l-km" placeholder="e.g. 2450" min="0" inputmode="numeric"></div>
+          <div class="fg" style="flex:1;"><label>Date</label><input type="date" id="l-date"></div>
+        </div>
+        <div class="fg" style="margin-bottom:18px;"><label>Notes (optional)</label><textarea id="l-notes" rows="3" placeholder="Products used, parts replaced, observations…"></textarea></div>
+        <button class="btn ba" onclick="doLog()">Save service record</button>
+      </div>
+    </div>
+
+    <!-- MILEAGE -->
+    <div id="p-mil" class="pane">
+      <div class="fw5" style="font-size:15px;margin-bottom:14px;">Update odometer</div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="fr g8">
+          <div class="fg" style="flex:1;"><label>Current odometer (km)</label><input type="number" id="m-km" placeholder="e.g. 2500" min="0" inputmode="numeric"></div>
+          <div class="fg" style="flex:1;"><label>Date</label><input type="date" id="m-date"></div>
+        </div>
+        <button class="btn ba" onclick="doMil()">Save</button>
+      </div>
+      <div class="fw5" style="font-size:14px;margin-bottom:10px;">History</div>
+      <div id="m-hist"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="p-hist" class="pane">
+      <div class="fr jb g8" style="margin-bottom:14px;">
+        <div class="fw5" style="font-size:15px;">Service history</div>
+        <button class="btn bg2 bsm" onclick="confirmReset()" style="color:#F87171;border-color:rgba(248,113,113,0.2);">Reset app</button>
+      </div>
+      <div id="h-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ITEMS=[
+  {id:'fuel_line',name:'Fuel line',cat:'Emission control',job:'Check hoses for cracks/damage; replace if needed',dealer:true,type:'km10_from10'},
+  {id:'spark_chk',name:'Spark plugs — check',cat:'Emission control',job:'Check condition, adjust gap & clean',dealer:true,type:'km10_from10'},
+  {id:'spark_rep',name:'Spark plugs — replace',cat:'Emission control',job:'Replace spark plugs',dealer:true,type:'km20'},
+  {id:'valve',name:'Valve clearance',cat:'Emission control',job:'Check & adjust; check engine idle speed',dealer:true,type:'km20'},
+  {id:'fuel_inj',name:'Fuel injection sync',cat:'Emission control',job:'Check & adjust throttle body synchronization',dealer:true,type:'km10_from10'},
+  {id:'exhaust',name:'Exhaust system',cat:'Emission control',job:'Check for leakage; tighten or replace gaskets',dealer:true,type:'km10_from10'},
+  {id:'evap',name:'Evap. emission system',cat:'Emission control',job:'Check system for damage; replace if needed',dealer:true,type:'km10_from10'},
+  {id:'diag',name:'Diagnostic check',cat:'General',job:'Dynamic inspection with Yamaha diagnostic tool; check error codes',dealer:true,type:'km10_from10'},
+  {id:'air_filt',name:'Air filter element',cat:'General',job:'Replace element — do not clean with compressed air',dealer:true,type:'km40'},
+  {id:'clutch',name:'Clutch',cat:'General',job:'Check operation & adjust freeplay at lever',dealer:false,type:'km10_from1'},
+  {id:'front_brk',name:'Front brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1'},
+  {id:'rear_brk',name:'Rear brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1'},
+  {id:'brk_hose_c',name:'Brake hoses — check',cat:'General',job:'Inspect hoses for cracks, chafing or damage',dealer:true,type:'km10_from10'},
+  {id:'brk_hose_r',name:'Brake hoses — replace',cat:'General',job:'Replace all brake hoses regardless of condition',dealer:true,type:'time',years:4},
+  {id:'brk_fluid',name:'Brake fluid',cat:'General',job:'Drain and replace brake fluid (DOT 4)',dealer:true,type:'time',years:2},
+  {id:'wheels',name:'Wheels',cat:'General',job:'Check for runout, cracks or damage; replace if needed',dealer:true,type:'km10_from10'},
+  {id:'tires',name:'Tires',cat:'General',job:'Check tread depth, sidewall damage & cold air pressure',dealer:true,type:'km10_from10'},
+  {id:'whl_bear',name:'Wheel bearings',cat:'General',job:'Check both wheels for looseness or roughness',dealer:true,type:'km10_from10'},
+  {id:'swng_chk',name:'Swingarm pivot bearings',cat:'General',job:'Check for excessive play; wiggle swingarm laterally',dealer:true,type:'km10_from10'},
+  {id:'swng_rep',name:'Swingarm pivot — repack',cat:'General',job:'Disassemble and repack with lithium-soap-based grease',dealer:true,type:'km50'},
+  {id:'chain',name:'Drive chain',cat:'General',job:'Check slack (45–50 mm), alignment & O-ring condition; adjust & lubricate',dealer:false,type:'km1'},
+  {id:'steer',name:'Steering bearings',cat:'General',job:'Check for looseness with front wheel off ground; repack with lithium grease',dealer:true,type:'km10_from10'},
+  {id:'chassis',name:'Chassis fasteners',cat:'General',job:'Check all nuts, bolts & screws are torqued to spec',dealer:true,type:'km10_from1'},
+  {id:'brk_lev',name:'Brake lever pivot',cat:'Lubrication',job:'Apply silicone grease to pivot pin',dealer:false,type:'km10_from1'},
+  {id:'brk_ped',name:'Brake pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
+  {id:'clt_lev',name:'Clutch lever pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
+  {id:'shft_ped',name:'Shift pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
+  {id:'sstand',name:'Sidestand',cat:'Lubrication',job:'Check return spring & operation; apply molybdenum disulfide grease to pivot',dealer:false,type:'km10_from1'},
+  {id:'cstand',name:'Centerstand',cat:'Lubrication',job:'Check operation & spring; apply lithium-soap-based grease to pivot',dealer:false,type:'km10_from1'},
+  {id:'sstand_sw',name:'Sidestand switch',cat:'General',job:'Verify engine cuts out when sidestand is deployed in gear',dealer:true,type:'km10_from1'},
+  {id:'fork',name:'Front fork',cat:'General',job:'Check for oil seepage around seals and smooth damping action',dealer:true,type:'km10_from10'},
+  {id:'shock',name:'Shock absorber',cat:'General',job:'Check for oil leakage around shaft and proper rebound action',dealer:true,type:'km10_from1'},
+  {id:'rear_susp',name:'Rear suspension linkage',cat:'General',job:'Check relay arm & connecting arm pivots for play or binding',dealer:true,type:'km10_from10'},
+  {id:'eng_oil',name:'Engine oil',cat:'Engine',job:'Drain warm oil, replace with correct spec; check level & for leaks',dealer:false,type:'km10_from1'},
+  {id:'oil_filt',name:'Engine oil filter',cat:'Engine',job:'Replace oil filter cartridge; torque to 17 N·m',dealer:false,type:'km10_from1'},
+  {id:'cool_chk',name:'Cooling system',cat:'Engine',job:'Check coolant level in reservoir; inspect hoses for leaks',dealer:true,type:'km10_from1'},
+  {id:'coolant',name:'Coolant',cat:'Engine',job:'Flush and replace with fresh coolant',dealer:true,type:'time',years:3},
+  {id:'brk_sw',name:'Brake switches',cat:'General',job:'Verify brake light activates correctly from both front and rear',dealer:true,type:'km10_from1'},
+  {id:'cables',name:'Moving parts & cables',cat:'Lubrication',job:'Lubricate all pivot points, cables and exposed linkages',dealer:false,type:'km10_from1'},
+  {id:'throttle',name:'Throttle grip',cat:'General',job:'Check smooth snap-shut action; lubricate housing tube guides',dealer:true,type:'km10_from1'},
+  {id:'lights',name:'Lights, signals & switches',cat:'General',job:'Check all lights, indicators & switches; adjust headlight aim',dealer:true,type:'km10_from1'},
+];
+
+const BULK_1K=ITEMS.filter(i=>i.type==='km10_from1'||i.type==='km1').map(i=>i.id);
+let S={setup:false,currentKm:0,regDate:null,mileageLog:[],records:[]};
+const SK='t9_v3';
+
+function loadS(){try{const r=localStorage.getItem(SK);if(r)Object.assign(S,JSON.parse(r));}catch(e){}}
+function saveS(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
+
+const M1=[1000,10000,20000,30000,40000,50000,60000,70000,80000,90000,100000,110000,120000];
+const M10=[10000,20000,30000,40000,50000,60000,70000,80000,90000,100000,110000,120000];
+const SOON={km1:200,km10_from1:1500,km10_from10:1500,km20:2500,km40:4000,km50:5000};
+const INTLBL={km1:'Every 1,000 km',km10_from1:'Every 10,000 km (initial at 1k)',km10_from10:'Every 10,000 km',km20:'Every 20,000 km',km40:'Every 40,000 km',km50:'Every 50,000 km'};
+
+function nxt(type,last){
+  const l=last||0;
+  switch(type){
+    case'km1':return l+1000;
+    case'km10_from1':return M1.find(m=>m>l)??Math.ceil((l+1)/10000)*10000;
+    case'km10_from10':return M10.find(m=>m>l)??Math.ceil((l+1)/10000)*10000;
+    case'km20':return Math.ceil((l+1)/20000)*20000;
+    case'km40':return Math.ceil((l+1)/40000)*40000;
+    case'km50':return Math.ceil((l+1)/50000)*50000;
+    default:return l+10000;
+  }
+}
+
+function lastRec(id){return S.records.filter(r=>r.itemId===id).sort((a,b)=>new Date(b.date)-new Date(a.date))[0]||null;}
+
+function status(item){
+  const rec=lastRec(item.id);
+  if(item.type==='time'){
+    const base=rec?new Date(rec.date):(S.regDate?new Date(S.regDate):new Date());
+    const d=new Date(base);d.setFullYear(d.getFullYear()+item.years);
+    const days=Math.round((d-new Date())/86400000);
+    const lbl=`Every ${item.years} years`;
+    if(days<0)return{st:'r',bdg:`${Math.abs(days)}d overdue`,sub:lbl};
+    if(days<=60)return{st:'o',bdg:`Due in ${days}d`,sub:lbl};
+    return{st:'g',bdg:d.toLocaleDateString('en-GB',{month:'short',year:'numeric'}),sub:lbl};
+  }
+  const lk=rec?.km||0;
+  const nk=nxt(item.type,lk);
+  const rem=nk-S.currentKm;
+  const thr=SOON[item.type]||1500;
+  const sub=`Due at ${nk.toLocaleString()} km · ${INTLBL[item.type]||''}`;
+  if(rem<=0)return{st:'r',bdg:`${Math.abs(rem).toLocaleString()} km overdue`,sub};
+  if(rem<=thr)return{st:'o',bdg:`${rem.toLocaleString()} km left`,sub};
+  return{st:'g',bdg:`At ${nk.toLocaleString()} km`,sub};
+}
+
+function show1k(){return S.currentKm>=1000&&BULK_1K.some(id=>!lastRec(id));}
+
+function rd(){
+  document.getElementById('hdr-km').textContent=S.currentKm.toLocaleString()+' km';
+  const pr=document.getElementById('dash-prompt');
+  if(S.mileageLog.length){
+    const last=S.mileageLog[S.mileageLog.length-1];
+    pr.style.display=(Date.now()-new Date(last.date))/86400000>30?'block':'none';
+  }else pr.style.display='none';
+  const b1=document.getElementById('dash-1k');
+  if(show1k()){b1.style.display='block';document.getElementById('b1k-date').value=today();}
+  else b1.style.display='none';
+
+  const ov=ITEMS.filter(i=>status(i).st==='r');
+  const so=ITEMS.filter(i=>status(i).st==='o');
+  const ok=ITEMS.filter(i=>status(i).st==='g');
+  let h='';
+
+  if(!ov.length&&!so.length){
+    h=`<div class="card" style="text-align:center;padding:28px 14px;">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style="display:block;margin:0 auto 10px;"><circle cx="18" cy="18" r="18" fill="var(--grn-bg)"/><path d="M11 18l5 5 9-9" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="fw5">All services up to date</div>
+      <div class="mu sm mt4">Nothing due within the next service window</div>
+    </div>`;
+  }
+  if(ov.length){
+    h+=`<div class="sh" style="color:var(--red);">Overdue · ${ov.length}</div><div class="card">`;
+    ov.forEach(i=>{h+=row(i,'r');});h+=`</div>`;
+  }
+  if(so.length){
+    h+=`<div class="sh" style="color:var(--orn);margin-top:${ov.length?'16px':'0'};">Due soon · ${so.length}</div><div class="card">`;
+    so.forEach(i=>{h+=row(i,'o');});h+=`</div>`;
+  }
+  if(ok.length){
+    h+=`<div class="sh" style="margin-top:16px;">Up to date · ${ok.length}</div><div class="card">`;
+    ok.forEach(i=>{
+      const s=status(i);
+      h+=`<div class="irow"><div class="irow-l"><div class="sm" style="color:var(--tx2);">${i.name}${i.dealer?` <span style="color:var(--tx3);font-size:10px;">★</span>`:''}</div></div><span class="bdg bg" style="flex-shrink:0;">${s.bdg}</span></div>`;
+    });
+    h+=`</div>`;
+  }
+  document.getElementById('dash-body').innerHTML=h;
+}
+
+function row(item,t){
+  const s=status(item);
+  const bc=t==='r'?'br':t==='o'?'bo':'bg';
+  return`<div class="irow">
+    <div class="irow-l">
+      <div class="item-name">${item.name}${item.dealer?` <span style="color:var(--tx3);font-size:10px;">★</span>`:''}</div>
+      <div class="item-job">${item.job}</div>
+      <div class="item-sub">${s.sub}</div>
+    </div>
+    <div class="irow-r">
+      <span class="bdg ${bc}">${s.bdg}</span>
+      <button class="btn bg2 bsm" onclick="ql('${item.id}')">Log</button>
+    </div>
+  </div>`;
+}
+
+function rLog(pre){
+  const sel=document.getElementById('l-item');
+  const cats={};
+  ITEMS.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
+  sel.innerHTML=Object.entries(cats).map(([c,it])=>
+    `<optgroup label="${c}">${it.map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</optgroup>`
+  ).join('');
+  if(pre)sel.value=pre;
+  document.getElementById('l-km').value=S.currentKm||'';
+  document.getElementById('l-date').value=today();
+  document.getElementById('l-notes').value='';
+}
+
+function rMil(){
+  document.getElementById('m-km').value='';
+  document.getElementById('m-date').value=today();
+  const s=[...S.mileageLog].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('m-hist').innerHTML=s.length
+    ?s.map((e,i)=>`<div class="card"><div class="fr jb g8"><div><div class="fw5">${parseInt(e.km).toLocaleString()} km</div><div class="mu sm mt4">${fd(e.date)}</div></div>${i===0?'<span class="bdg bn">Latest</span>':''}</div></div>`).join('')
+    :'<div class="mu sm" style="text-align:center;padding:20px;">No entries yet</div>';
+}
+
+function rHist(){
+  const s=[...S.records].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('h-list').innerHTML=s.length
+    ?s.map(r=>{
+      const it=ITEMS.find(i=>i.id===r.itemId);
+      return`<div class="card" style="margin-bottom:8px;">
+        <div class="fr jb g8"${r.notes?' style="margin-bottom:10px;"':''}><div><div class="fw5 sm">${it?it.name:r.itemId}</div><div class="mu sm mt4">${fd(r.date)} · ${parseInt(r.km).toLocaleString()} km</div></div><span class="bdg bg">Done</span></div>
+        ${r.notes?`<div style="font-size:12px;color:var(--tx2);padding:8px 10px;background:var(--s2);border-radius:6px;line-height:1.5;">${r.notes}</div>`:''}
+      </div>`;
+    }).join('')
+    :'<div class="mu sm" style="text-align:center;padding:24px;">No service records yet</div>';
+}
+
+function doSetup(){
+  const km=parseInt(document.getElementById('s-km').value);
+  const dt=document.getElementById('s-date').value;
+  if(!km||km<0){showN('Enter a valid odometer reading');return;}
+  if(!dt){showN('Select a registration date');return;}
+  S.setup=true;S.currentKm=km;S.regDate=dt;
+  S.mileageLog.push({date:today(),km});
+  saveS();
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  rd();
+}
+
+function bulk1k(){
+  const dt=document.getElementById('b1k-date').value;
+  if(!dt){showN('Select the date of your 1k service');return;}
+  const now=Date.now();
+  BULK_1K.forEach((id,i)=>{
+    if(!lastRec(id))S.records.push({id:(now+i)+'',itemId:id,date:dt,km:1000,notes:'1,000 km initial service'});
+  });
+  saveS();showN(`${BULK_1K.length} items marked as done`);rd();
+}
+
+function doLog(){
+  const id=document.getElementById('l-item').value;
+  const km=parseInt(document.getElementById('l-km').value);
+  const dt=document.getElementById('l-date').value;
+  const notes=document.getElementById('l-notes').value.trim();
+  if(!km||km<0){showN('Enter a valid km reading');return;}
+  if(!dt){showN('Select a date');return;}
+  S.records.push({id:Date.now()+'',itemId:id,date:dt,km,notes});
+  if(km>S.currentKm){S.currentKm=km;S.mileageLog.push({date:dt,km});}
+  saveS();showN('Service record saved');
+  document.getElementById('l-notes').value='';
+  document.getElementById('hdr-km').textContent=S.currentKm.toLocaleString()+' km';
+}
+
+function doMil(){
+  const km=parseInt(document.getElementById('m-km').value);
+  const dt=document.getElementById('m-date').value;
+  if(!km||km<0){showN('Enter a valid km reading');return;}
+  if(!dt){showN('Select a date');return;}
+  S.mileageLog.push({date:dt,km});
+  if(km>S.currentKm)S.currentKm=km;
+  saveS();showN('Mileage updated');rd();rMil();
+}
+
+function confirmReset(){
+  if(confirm('Reset all data? This cannot be undone.')){
+    localStorage.removeItem(SK);
+    location.reload();
+  }
+}
+
+function ql(id){sw('log');setTimeout(()=>rLog(id),30);}
+
+function sw(tab){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p-'+tab).classList.add('on');
+  document.getElementById('tb-'+tab).classList.add('on');
+  if(tab==='dash')rd();
+  if(tab==='log')rLog(null);
+  if(tab==='mil')rMil();
+  if(tab==='hist')rHist();
+  window.scrollTo(0,0);
+}
+
+let nt;
+function showN(msg){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.style.display='block';
+  clearTimeout(nt);nt=setTimeout(()=>el.style.display='none',2500);
+}
+
+function today(){return new Date().toISOString().split('T')[0];}
+function fd(d){return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+
+loadS();
+if(S.setup){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  rd();
+}else{
+  document.getElementById('s-date').value=today();
+}
+</script>
+</body>
+</html>
