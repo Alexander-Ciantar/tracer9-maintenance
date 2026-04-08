@@ -96,6 +96,24 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .sm{font-size:12px;}
 .fw5{font-weight:500;}
 .mt4{margin-top:4px;}
+/* Print styles */
+#print-view{display:none;}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body>*:not(#print-view){display:none!important;}
+  #print-view{display:block!important;font-family:-apple-system,'Helvetica Neue',sans-serif;color:#000;padding:28px;max-width:100%;}
+  .pr-hdr{border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:24px;}
+  .pr-hdr h1{font-size:22px;font-weight:700;letter-spacing:-.3px;}
+  .pr-hdr h2{font-size:14px;font-weight:400;color:#555;margin-top:3px;}
+  .pr-meta{display:flex;gap:28px;margin-top:12px;font-size:12px;color:#666;}
+  .pr-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;}
+  .pr-tbl th{background:#f0f0f0;padding:8px 10px;text-align:left;border:1px solid #ccc;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  .pr-tbl td{padding:7px 10px;border:1px solid #ddd;vertical-align:top;line-height:1.4;}
+  .pr-tbl tr:nth-child(even) td{background:#f8f8f8;}
+  .pr-tbl td.km{white-space:nowrap;}
+  .pr-tbl td.notes{color:#555;font-size:11px;}
+  .pr-foot{font-size:10px;color:#aaa;text-align:center;border-top:0.5px solid #ddd;padding-top:10px;}
+}
 </style>
 </head>
 <body>
@@ -199,7 +217,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
     <!-- HISTORY -->
     <div id="p-hist" class="pane">
-      <div class="fw5" style="font-size:15px;margin-bottom:14px;">Service history</div>
+      <div class="fr jb g8" style="margin-bottom:14px;">
+        <div class="fw5" style="font-size:15px;">Service history</div>
+        <div class="fr g8">
+          <button class="btn bg2 bsm" onclick="exportCSV()">Export CSV</button>
+          <button class="btn bg2 bsm" onclick="exportPDF()">Export PDF</button>
+        </div>
+      </div>
       <div id="h-list"></div>
     </div>
 
@@ -552,7 +576,62 @@ if(S.setup){
   document.getElementById('s-date').value=today();
 }
 
-// ===== GITHUB SYNC =====
+// ===== EXPORT =====
+function exportCSV(){
+  if(!S.records.length){showN('No service records to export');return;}
+  const rows=[...S.records].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const hdrs=['Date','Odometer (km)','Service Item','Category','Dealer Required','Notes'];
+  const lines=[hdrs.join(',')];
+  rows.forEach(r=>{
+    const it=ITEMS.find(i=>i.id===r.itemId);
+    const name=r.itemId==='custom'?(r.customName||'Custom service'):it?it.name:r.itemId;
+    const cat=r.itemId==='custom'?'Custom':it?it.cat:'';
+    const dealer=r.itemId==='custom'?'':it?(it.dealer?'Yes':'No'):'';
+    const notes=(r.notes||'').replace(/"/g,'""');
+    lines.push([r.date,r.km,'"'+name+'"','"'+cat+'"',dealer,'"'+notes+'"'].join(','));
+  });
+  const csv='\uFEFF'+lines.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='tracer9-service-history.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+
+function exportPDF(){
+  if(!S.records.length){showN('No service records to export');return;}
+  const rows=[...S.records].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const tbody=rows.map(r=>{
+    const it=ITEMS.find(i=>i.id===r.itemId);
+    const name=r.itemId==='custom'?(r.customName||'Custom service'):it?it.name:r.itemId;
+    const cat=r.itemId==='custom'?'Custom':it?it.cat:'';
+    const notes=r.notes?`<td class="notes">${r.notes}</td>`:'<td class="notes">—</td>';
+    return`<tr><td>${fd(r.date)}</td><td class="km">${parseInt(r.km).toLocaleString()} km</td><td>${name}</td><td>${cat}</td>${notes}</tr>`;
+  }).join('');
+  const totalRecords=S.records.length;
+  const firstDate=fd(rows[0].date);
+  const lastDate=fd(rows[rows.length-1].date);
+  document.getElementById('print-view').innerHTML=`
+    <div class="pr-hdr">
+      <h1>Yamaha Tracer 9 / 9GT</h1>
+      <h2>Full Service Record</h2>
+      <div class="pr-meta">
+        <span>Registered: ${S.regDate?fd(S.regDate):'—'}</span>
+        <span>Current odometer: ${S.currentKm.toLocaleString()} km</span>
+        <span>Service records: ${totalRecords} entries (${firstDate} to ${lastDate})</span>
+      </div>
+    </div>
+    <table class="pr-tbl">
+      <thead><tr><th>Date</th><th>Odometer</th><th>Service item</th><th>Category</th><th>Notes</th></tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>
+    <div class="pr-foot">Generated ${fd(today())} &nbsp;·&nbsp; Yamaha Tracer 9 Maintenance App &nbsp;·&nbsp; alexander-ciantar.github.io/tracer9-maintenance</div>
+  `;
+  window.print();
+}
+
+
 let GH={username:'',repo:'tracer9-maintenance',token:'',sha:null};
 const GK='t9_gh_v1';
 
@@ -672,5 +751,8 @@ function ghDisconnect(){
 }
 
 </script>
+<!-- Print view (hidden, shown only when printing) -->
+<div id="print-view"></div>
+
 </body>
 </html>
