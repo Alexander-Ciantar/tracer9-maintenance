@@ -101,7 +101,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body>*:not(#print-view){display:none!important;}
-  #print-view{display:block!important;font-family:-apple-system,'Helvetica Neue',sans-serif;color:#000;padding:28px;max-width:100%;}
+  body,html{background:#fff!important;}
+  #print-view{display:block!important;font-family:-apple-system,'Helvetica Neue',sans-serif;color:#000;background:#fff;padding:28px;max-width:100%;}
   .pr-hdr{border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:24px;}
   .pr-hdr h1{font-size:22px;font-weight:700;letter-spacing:-.3px;}
   .pr-hdr h2{font-size:14px;font-weight:400;color:#555;margin-top:3px;}
@@ -558,25 +559,37 @@ function showN(msg){
 function today(){return new Date().toISOString().split('T')[0];}
 function fd(d){return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 
-loadS();loadGH();
-if(S.setup){
-  document.getElementById('setup').style.display='none';
-  document.getElementById('app').style.display='block';
-  if(ghConfigured()){
-    setSyncDot('syncing');
-    ghFetch().then(d=>{
-      if(d){Object.assign(S,d);localStorage.setItem(SK,JSON.stringify(S));rd();}
+async function init(){
+  loadS();loadGH();
+  if(S.setup){
+    document.getElementById('setup').style.display='none';
+    document.getElementById('app').style.display='block';
+    if(ghConfigured()){
+      setSyncDot('syncing');
+      document.getElementById('dash-body').innerHTML='<div style="text-align:center;padding:40px 0;color:var(--tx3);font-size:13px;">Syncing with GitHub\u2026</div>';
+      const d=await ghFetch();
+      if(d){Object.assign(S,d);localStorage.setItem(SK,JSON.stringify(S));}
       setSyncDot(d?'ok':'error');
-    });
+    }else{
+      setSyncDot('off');
+    }
+    rd();
   }else{
-    setSyncDot('off');
+    document.getElementById('s-date').value=today();
   }
-  rd();
-}else{
-  document.getElementById('s-date').value=today();
 }
+init();
 
 // ===== EXPORT =====
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector('script[src="'+src+'"]')){res();return;}
+    const s=document.createElement('script');
+    s.src=src;s.onload=res;s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
 function exportCSV(){
   if(!S.records.length){showN('No service records to export');return;}
   const rows=[...S.records].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -593,42 +606,80 @@ function exportCSV(){
   const csv='\uFEFF'+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='tracer9-service-history.csv';
-  document.body.appendChild(a);a.click();
-  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  window.open(url,'_blank');
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
-function exportPDF(){
+async function exportPDF(){
   if(!S.records.length){showN('No service records to export');return;}
+  showN('Generating PDF\u2026');
+  try{
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js');
+  }catch(e){showN('Could not load PDF library. Check connection.');return;}
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+  const W=210,H=297,mg=14;
+  const BG=[11,11,13],S1=[22,22,24],S2=[34,34,37];
+  const ACC=[245,158,11],TX=[244,244,245],TX2=[161,161,170],TX3=[82,82,91];
+
+  // Page 1 background + header
+  doc.setFillColor(...BG);doc.rect(0,0,W,H,'F');
+  doc.setFillColor(...S1);doc.rect(0,0,W,48,'F');
+  doc.setFillColor(...ACC);doc.rect(0,48,W,0.8,'F');
+
+  // Title
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(...ACC);
+  doc.text('Yamaha Tracer 9 / 9GT',mg,18);
+  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(...TX2);
+  doc.text('Full Service Record',mg,28);
+
+  // Meta row
   const rows=[...S.records].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const tbody=rows.map(r=>{
+  const firstDate=rows.length?fd(rows[0].date):'—';
+  const lastDate=rows.length?fd(rows[rows.length-1].date):'—';
+  doc.setFontSize(8.5);doc.setTextColor(...TX3);
+  doc.text('Registered: '+(S.regDate?fd(S.regDate):'—'),mg,38);
+  doc.text('Odometer: '+S.currentKm.toLocaleString()+' km',mg+54,38);
+  doc.text(S.records.length+' records  ('+firstDate+' \u2013 '+lastDate+')',mg+108,38);
+
+  // Table data
+  const tableRows=rows.map(r=>{
     const it=ITEMS.find(i=>i.id===r.itemId);
     const name=r.itemId==='custom'?(r.customName||'Custom service'):it?it.name:r.itemId;
     const cat=r.itemId==='custom'?'Custom':it?it.cat:'';
-    const notes=r.notes?`<td class="notes">${r.notes}</td>`:'<td class="notes">—</td>';
-    return`<tr><td>${fd(r.date)}</td><td class="km">${parseInt(r.km).toLocaleString()} km</td><td>${name}</td><td>${cat}</td>${notes}</tr>`;
-  }).join('');
-  const totalRecords=S.records.length;
-  const firstDate=fd(rows[0].date);
-  const lastDate=fd(rows[rows.length-1].date);
-  document.getElementById('print-view').innerHTML=`
-    <div class="pr-hdr">
-      <h1>Yamaha Tracer 9 / 9GT</h1>
-      <h2>Full Service Record</h2>
-      <div class="pr-meta">
-        <span>Registered: ${S.regDate?fd(S.regDate):'—'}</span>
-        <span>Current odometer: ${S.currentKm.toLocaleString()} km</span>
-        <span>Service records: ${totalRecords} entries (${firstDate} to ${lastDate})</span>
-      </div>
-    </div>
-    <table class="pr-tbl">
-      <thead><tr><th>Date</th><th>Odometer</th><th>Service item</th><th>Category</th><th>Notes</th></tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>
-    <div class="pr-foot">Generated ${fd(today())} &nbsp;·&nbsp; Yamaha Tracer 9 Maintenance App &nbsp;·&nbsp; alexander-ciantar.github.io/tracer9-maintenance</div>
-  `;
-  window.print();
+    return[fd(r.date),parseInt(r.km).toLocaleString()+' km',name,cat,r.notes||'—'];
+  });
+
+  doc.autoTable({
+    startY:54,
+    margin:{left:mg,right:mg},
+    head:[['Date','Odometer','Service item','Category','Notes']],
+    body:tableRows,
+    styles:{fillColor:BG,textColor:TX,fontSize:8.5,cellPadding:{top:4,bottom:4,left:3,right:3},lineColor:[30,30,34],lineWidth:0.3},
+    headStyles:{fillColor:S2,textColor:TX2,fontStyle:'bold',fontSize:8},
+    alternateRowStyles:{fillColor:S1},
+    columnStyles:{0:{cellWidth:25},1:{cellWidth:24},2:{cellWidth:62},3:{cellWidth:30},4:{cellWidth:'auto'}},
+    willDrawPage:(data)=>{
+      // Background on every page
+      doc.setFillColor(...BG);doc.rect(0,0,W,H,'F');
+      // Repeat header bar on pages after page 1
+      if(data.pageNumber>1){
+        doc.setFillColor(...S1);doc.rect(0,0,W,12,'F');
+        doc.setFillColor(...ACC);doc.rect(0,12,W,0.5,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...ACC);
+        doc.text('Yamaha Tracer 9 / 9GT  \u2014  Service Record (cont.)',mg,9);
+      }
+    },
+    didDrawPage:(data)=>{
+      // Footer on every page
+      doc.setFontSize(8);doc.setTextColor(...TX3);
+      doc.text('Generated '+fd(today())+'  \u00b7  Tracer 9 Maintenance App  \u00b7  Page '+data.pageNumber,mg,H-7);
+    }
+  });
+
+  doc.output('dataurlnewwindow');
 }
 
 
