@@ -49,7 +49,11 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,'SF Pro Text
 .irow-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;padding-top:1px;}
 .item-name{font-size:13px;font-weight:500;margin-bottom:3px;}
 .item-job{font-size:12px;color:var(--tx2);line-height:1.4;margin-bottom:3px;}
+.item-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .item-sub{font-size:11px;color:var(--tx3);}
+.manual-link{font-size:11px;color:var(--acc);text-decoration:none;white-space:nowrap;opacity:.85;}
+.manual-link:hover{opacity:1;}
+.manual-link-lg{display:inline-block;font-size:13px;color:var(--acc);text-decoration:none;font-weight:500;padding:8px 0;}
 
 /* Badges */
 .bdg{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;}
@@ -57,6 +61,8 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,'SF Pro Text
 .bo{background:var(--orn-bg);color:var(--orn);}
 .bg{background:var(--grn-bg);color:var(--grn);}
 .bn{background:var(--s2);color:var(--tx2);}
+.bp{background:rgba(139,92,246,0.12);color:#A78BFA;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
 /* Section headers */
 .sh{font-size:11px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;}
@@ -153,7 +159,17 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div id="p-log" class="pane">
       <div class="fw5" style="font-size:15px;margin-bottom:14px;">Log a service</div>
       <div class="card">
-        <div class="fg"><label>Service item</label><select id="l-item"></select></div>
+        <div class="fg">
+          <label>Service item</label>
+          <select id="l-item" onchange="updateLogForm()"></select>
+        </div>
+        <div id="l-manual" style="display:none;margin-bottom:13px;">
+          <a id="l-manual-a" href="manual.pdf#page=1" target="_blank" class="manual-link-lg">View section in manual &#8594;</a>
+        </div>
+        <div id="l-custom-wrap" style="display:none;margin-bottom:13px;animation:fadeIn .15s;">
+          <label>Service name</label>
+          <input type="text" id="l-custom-name" placeholder="e.g. Tyre replacement, Fork oil change, Air horn install…">
+        </div>
         <div class="fr g8">
           <div class="fg" style="flex:1;"><label>Odometer (km)</label><input type="number" id="l-km" placeholder="e.g. 2450" min="0" inputmode="numeric"></div>
           <div class="fg" style="flex:1;"><label>Date</label><input type="date" id="l-date"></div>
@@ -190,47 +206,47 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 <script>
 const ITEMS=[
-  {id:'fuel_line',name:'Fuel line',cat:'Emission control',job:'Check hoses for cracks/damage; replace if needed',dealer:true,type:'km10_from10'},
-  {id:'spark_chk',name:'Spark plugs — check',cat:'Emission control',job:'Check condition, adjust gap & clean',dealer:true,type:'km10_from10'},
-  {id:'spark_rep',name:'Spark plugs — replace',cat:'Emission control',job:'Replace spark plugs',dealer:true,type:'km20'},
-  {id:'valve',name:'Valve clearance',cat:'Emission control',job:'Check & adjust; check engine idle speed',dealer:true,type:'km20'},
-  {id:'fuel_inj',name:'Fuel injection sync',cat:'Emission control',job:'Check & adjust throttle body synchronization',dealer:true,type:'km10_from10'},
-  {id:'exhaust',name:'Exhaust system',cat:'Emission control',job:'Check for leakage; tighten or replace gaskets',dealer:true,type:'km10_from10'},
-  {id:'evap',name:'Evap. emission system',cat:'Emission control',job:'Check system for damage; replace if needed',dealer:true,type:'km10_from10'},
-  {id:'diag',name:'Diagnostic check',cat:'General',job:'Dynamic inspection with Yamaha diagnostic tool; check error codes',dealer:true,type:'km10_from10'},
-  {id:'air_filt',name:'Air filter element',cat:'General',job:'Replace element — do not clean with compressed air',dealer:true,type:'km40'},
-  {id:'clutch',name:'Clutch',cat:'General',job:'Check operation & adjust freeplay at lever',dealer:false,type:'km10_from1'},
-  {id:'front_brk',name:'Front brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1'},
-  {id:'rear_brk',name:'Rear brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1'},
-  {id:'brk_hose_c',name:'Brake hoses — check',cat:'General',job:'Inspect hoses for cracks, chafing or damage',dealer:true,type:'km10_from10'},
-  {id:'brk_hose_r',name:'Brake hoses — replace',cat:'General',job:'Replace all brake hoses regardless of condition',dealer:true,type:'time',years:4},
-  {id:'brk_fluid',name:'Brake fluid',cat:'General',job:'Drain and replace brake fluid (DOT 4)',dealer:true,type:'time',years:2},
-  {id:'wheels',name:'Wheels',cat:'General',job:'Check for runout, cracks or damage; replace if needed',dealer:true,type:'km10_from10'},
-  {id:'tires',name:'Tires',cat:'General',job:'Check tread depth, sidewall damage & cold air pressure',dealer:true,type:'km10_from10'},
-  {id:'whl_bear',name:'Wheel bearings',cat:'General',job:'Check both wheels for looseness or roughness',dealer:true,type:'km10_from10'},
-  {id:'swng_chk',name:'Swingarm pivot bearings',cat:'General',job:'Check for excessive play; wiggle swingarm laterally',dealer:true,type:'km10_from10'},
-  {id:'swng_rep',name:'Swingarm pivot — repack',cat:'General',job:'Disassemble and repack with lithium-soap-based grease',dealer:true,type:'km50'},
-  {id:'chain',name:'Drive chain',cat:'General',job:'Check slack (45–50 mm), alignment & O-ring condition; adjust & lubricate',dealer:false,type:'km1'},
-  {id:'steer',name:'Steering bearings',cat:'General',job:'Check for looseness with front wheel off ground; repack with lithium grease',dealer:true,type:'km10_from10'},
-  {id:'chassis',name:'Chassis fasteners',cat:'General',job:'Check all nuts, bolts & screws are torqued to spec',dealer:true,type:'km10_from1'},
-  {id:'brk_lev',name:'Brake lever pivot',cat:'Lubrication',job:'Apply silicone grease to pivot pin',dealer:false,type:'km10_from1'},
-  {id:'brk_ped',name:'Brake pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
-  {id:'clt_lev',name:'Clutch lever pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
-  {id:'shft_ped',name:'Shift pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1'},
-  {id:'sstand',name:'Sidestand',cat:'Lubrication',job:'Check return spring & operation; apply molybdenum disulfide grease to pivot',dealer:false,type:'km10_from1'},
-  {id:'cstand',name:'Centerstand',cat:'Lubrication',job:'Check operation & spring; apply lithium-soap-based grease to pivot',dealer:false,type:'km10_from1'},
-  {id:'sstand_sw',name:'Sidestand switch',cat:'General',job:'Verify engine cuts out when sidestand is deployed in gear',dealer:true,type:'km10_from1'},
-  {id:'fork',name:'Front fork',cat:'General',job:'Check for oil seepage around seals and smooth damping action',dealer:true,type:'km10_from10'},
-  {id:'shock',name:'Shock absorber',cat:'General',job:'Check for oil leakage around shaft and proper rebound action',dealer:true,type:'km10_from1'},
-  {id:'rear_susp',name:'Rear suspension linkage',cat:'General',job:'Check relay arm & connecting arm pivots for play or binding',dealer:true,type:'km10_from10'},
-  {id:'eng_oil',name:'Engine oil',cat:'Engine',job:'Drain warm oil, replace with correct spec; check level & for leaks',dealer:false,type:'km10_from1'},
-  {id:'oil_filt',name:'Engine oil filter',cat:'Engine',job:'Replace oil filter cartridge; torque to 17 N·m',dealer:false,type:'km10_from1'},
-  {id:'cool_chk',name:'Cooling system',cat:'Engine',job:'Check coolant level in reservoir; inspect hoses for leaks',dealer:true,type:'km10_from1'},
-  {id:'coolant',name:'Coolant',cat:'Engine',job:'Flush and replace with fresh coolant',dealer:true,type:'time',years:3},
-  {id:'brk_sw',name:'Brake switches',cat:'General',job:'Verify brake light activates correctly from both front and rear',dealer:true,type:'km10_from1'},
-  {id:'cables',name:'Moving parts & cables',cat:'Lubrication',job:'Lubricate all pivot points, cables and exposed linkages',dealer:false,type:'km10_from1'},
-  {id:'throttle',name:'Throttle grip',cat:'General',job:'Check smooth snap-shut action; lubricate housing tube guides',dealer:true,type:'km10_from1'},
-  {id:'lights',name:'Lights, signals & switches',cat:'General',job:'Check all lights, indicators & switches; adjust headlight aim',dealer:true,type:'km10_from1'},
+  {id:'fuel_line',name:'Fuel line',cat:'Emission control',job:'Check hoses for cracks/damage; replace if needed',dealer:true,type:'km10_from10',mp:119},
+  {id:'spark_chk',name:'Spark plugs — check',cat:'Emission control',job:'Check condition, adjust gap & clean',dealer:true,type:'km10_from10',mp:324},
+  {id:'spark_rep',name:'Spark plugs — replace',cat:'Emission control',job:'Replace spark plugs',dealer:true,type:'km20',mp:324},
+  {id:'valve',name:'Valve clearance',cat:'Emission control',job:'Check & adjust; check engine idle speed',dealer:true,type:'km20',mp:324},
+  {id:'fuel_inj',name:'Fuel injection sync',cat:'Emission control',job:'Check & adjust throttle body synchronization',dealer:true,type:'km10_from10',mp:121},
+  {id:'exhaust',name:'Exhaust system',cat:'Emission control',job:'Check for leakage; tighten or replace gaskets',dealer:true,type:'km10_from10',mp:119},
+  {id:'evap',name:'Evap. emission system',cat:'Emission control',job:'Check system for damage; replace if needed',dealer:true,type:'km10_from10',mp:121},
+  {id:'diag',name:'Diagnostic check',cat:'General',job:'Dynamic inspection with Yamaha diagnostic tool; check error codes',dealer:true,type:'km10_from10',mp:121},
+  {id:'air_filt',name:'Air filter element',cat:'General',job:'Replace element — do not clean with compressed air',dealer:true,type:'km40',mp:102},
+  {id:'clutch',name:'Clutch',cat:'General',job:'Check operation & adjust freeplay at lever',dealer:false,type:'km10_from1',mp:119},
+  {id:'front_brk',name:'Front brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1',mp:90},
+  {id:'rear_brk',name:'Rear brake',cat:'General',job:'Check operation, fluid level & leakage; replace pads if worn',dealer:true,type:'km10_from1',mp:81},
+  {id:'brk_hose_c',name:'Brake hoses — check',cat:'General',job:'Inspect hoses for cracks, chafing or damage',dealer:true,type:'km10_from10',mp:90},
+  {id:'brk_hose_r',name:'Brake hoses — replace',cat:'General',job:'Replace all brake hoses regardless of condition',dealer:true,type:'time',years:4,mp:90},
+  {id:'brk_fluid',name:'Brake fluid',cat:'General',job:'Drain and replace brake fluid (DOT 4)',dealer:true,type:'time',years:2,mp:119},
+  {id:'wheels',name:'Wheels',cat:'General',job:'Check for runout, cracks or damage; replace if needed',dealer:true,type:'km10_from10',mp:196},
+  {id:'tires',name:'Tires',cat:'General',job:'Check tread depth, sidewall damage & cold air pressure',dealer:true,type:'km10_from10',mp:196},
+  {id:'whl_bear',name:'Wheel bearings',cat:'General',job:'Check both wheels for looseness or roughness',dealer:true,type:'km10_from10',mp:200},
+  {id:'swng_chk',name:'Swingarm pivot bearings',cat:'General',job:'Check for excessive play; wiggle swingarm laterally',dealer:true,type:'km10_from10',mp:300},
+  {id:'swng_rep',name:'Swingarm pivot — repack',cat:'General',job:'Disassemble and repack with lithium-soap-based grease',dealer:true,type:'km50',mp:300},
+  {id:'chain',name:'Drive chain',cat:'General',job:'Check slack (45–50 mm), alignment & O-ring condition; adjust & lubricate',dealer:false,type:'km1',mp:119},
+  {id:'steer',name:'Steering bearings',cat:'General',job:'Check for looseness with front wheel off ground; repack with lithium grease',dealer:true,type:'km10_from10',mp:280},
+  {id:'chassis',name:'Chassis fasteners',cat:'General',job:'Check all nuts, bolts & screws are torqued to spec',dealer:true,type:'km10_from1',mp:119},
+  {id:'brk_lev',name:'Brake lever pivot',cat:'Lubrication',job:'Apply silicone grease to pivot pin',dealer:false,type:'km10_from1',mp:119},
+  {id:'brk_ped',name:'Brake pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1',mp:119},
+  {id:'clt_lev',name:'Clutch lever pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1',mp:119},
+  {id:'shft_ped',name:'Shift pedal pivot',cat:'Lubrication',job:'Apply lithium-soap-based grease to pivot pin',dealer:false,type:'km10_from1',mp:119},
+  {id:'sstand',name:'Sidestand',cat:'Lubrication',job:'Check return spring & operation; apply molybdenum disulfide grease to pivot',dealer:false,type:'km10_from1',mp:81},
+  {id:'cstand',name:'Centerstand',cat:'Lubrication',job:'Check operation & spring; apply lithium-soap-based grease to pivot',dealer:false,type:'km10_from1',mp:81},
+  {id:'sstand_sw',name:'Sidestand switch',cat:'General',job:'Verify engine cuts out when sidestand is deployed in gear',dealer:true,type:'km10_from1',mp:81},
+  {id:'fork',name:'Front fork',cat:'General',job:'Check for oil seepage around seals and smooth damping action',dealer:true,type:'km10_from10',mp:259},
+  {id:'shock',name:'Shock absorber',cat:'General',job:'Check for oil leakage around shaft and proper rebound action',dealer:true,type:'km10_from1',mp:279},
+  {id:'rear_susp',name:'Rear suspension linkage',cat:'General',job:'Check relay arm & connecting arm pivots for play or binding',dealer:true,type:'km10_from10',mp:300},
+  {id:'eng_oil',name:'Engine oil',cat:'Engine',job:'Drain warm oil, replace with correct spec; check level & for leaks',dealer:false,type:'km10_from1',mp:120},
+  {id:'oil_filt',name:'Engine oil filter',cat:'Engine',job:'Replace oil filter cartridge; torque to 17 N·m',dealer:false,type:'km10_from1',mp:123},
+  {id:'cool_chk',name:'Cooling system',cat:'Engine',job:'Check coolant level in reservoir; inspect hoses for leaks',dealer:true,type:'km10_from1',mp:120},
+  {id:'coolant',name:'Coolant',cat:'Engine',job:'Flush and replace with fresh coolant',dealer:true,type:'time',years:3,mp:120},
+  {id:'brk_sw',name:'Brake switches',cat:'General',job:'Verify brake light activates correctly from both front and rear',dealer:true,type:'km10_from1',mp:123},
+  {id:'cables',name:'Moving parts & cables',cat:'Lubrication',job:'Lubricate all pivot points, cables and exposed linkages',dealer:false,type:'km10_from1',mp:123},
+  {id:'throttle',name:'Throttle grip',cat:'General',job:'Check smooth snap-shut action; lubricate housing tube guides',dealer:true,type:'km10_from1',mp:120},
+  {id:'lights',name:'Lights, signals & switches',cat:'General',job:'Check all lights, indicators & switches; adjust headlight aim',dealer:true,type:'km10_from1',mp:123},
 ];
 
 const BULK_1K=ITEMS.filter(i=>i.type==='km10_from1'||i.type==='km1').map(i=>i.id);
@@ -328,11 +344,12 @@ function rd(){
 function row(item,t){
   const s=status(item);
   const bc=t==='r'?'br':t==='o'?'bo':'bg';
+  const manualBtn=item.mp?`<a href="manual.pdf#page=${item.mp}" target="_blank" class="manual-link">Manual p.${item.mp} &#8594;</a>`:'';
   return`<div class="irow">
     <div class="irow-l">
       <div class="item-name">${item.name}${item.dealer?` <span style="color:var(--tx3);font-size:10px;">★</span>`:''}</div>
       <div class="item-job">${item.job}</div>
-      <div class="item-sub">${s.sub}</div>
+      <div class="item-footer">${manualBtn}<span class="item-sub">${s.sub}</span></div>
     </div>
     <div class="irow-r">
       <span class="bdg ${bc}">${s.bdg}</span>
@@ -341,17 +358,38 @@ function row(item,t){
   </div>`;
 }
 
+function updateLogForm(){
+  const sel=document.getElementById('l-item');
+  const isCustom=sel.value==='custom';
+  document.getElementById('l-custom-wrap').style.display=isCustom?'block':'none';
+  if(!isCustom)document.getElementById('l-custom-name').value='';
+  // Update manual link
+  const ml=document.getElementById('l-manual');
+  if(!isCustom){
+    const item=ITEMS.find(i=>i.id===sel.value);
+    if(item?.mp){
+      document.getElementById('l-manual-a').href='manual.pdf#page='+item.mp;
+      document.getElementById('l-manual-a').textContent='View section in manual \u2192 p.'+item.mp;
+      ml.style.display='block';
+    }else{ml.style.display='none';}
+  }else{ml.style.display='none';}
+}
+
 function rLog(pre){
   const sel=document.getElementById('l-item');
   const cats={};
   ITEMS.forEach(i=>{if(!cats[i.cat])cats[i.cat]=[];cats[i.cat].push(i);});
-  sel.innerHTML=Object.entries(cats).map(([c,it])=>
+  const opts=Object.entries(cats).map(([c,it])=>
     `<optgroup label="${c}">${it.map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</optgroup>`
   ).join('');
-  if(pre)sel.value=pre;
+  sel.innerHTML=`<option value="custom">&#10022; Custom service</option><optgroup label="&#8213;&#8213;&#8213;&#8213;&#8213;&#8213;&#8213;&#8213;&#8213;"></optgroup>${opts}`;
+  if(pre){sel.value=pre;document.getElementById('l-custom-wrap').style.display='none';}
+  else document.getElementById('l-custom-wrap').style.display='block';
+  document.getElementById('l-custom-name').value='';
   document.getElementById('l-km').value=S.currentKm||'';
   document.getElementById('l-date').value=today();
   document.getElementById('l-notes').value='';
+  updateLogForm();
 }
 
 function rMil(){
@@ -368,8 +406,10 @@ function rHist(){
   document.getElementById('h-list').innerHTML=s.length
     ?s.map(r=>{
       const it=ITEMS.find(i=>i.id===r.itemId);
+      const isCustom=r.itemId==='custom';
+      const name=isCustom?(r.customName||'Custom service'):it?it.name:r.itemId;
       return`<div class="card" style="margin-bottom:8px;">
-        <div class="fr jb g8"${r.notes?' style="margin-bottom:10px;"':''}><div><div class="fw5 sm">${it?it.name:r.itemId}</div><div class="mu sm mt4">${fd(r.date)} · ${parseInt(r.km).toLocaleString()} km</div></div><span class="bdg bg">Done</span></div>
+        <div class="fr jb g8"${r.notes?' style="margin-bottom:10px;"':''}><div><div class="fw5 sm">${name}</div><div class="mu sm mt4">${fd(r.date)} · ${parseInt(r.km).toLocaleString()} km</div></div><span class="bdg ${isCustom?'bp':'bg'}">${isCustom?'Custom':'Done'}</span></div>
         ${r.notes?`<div style="font-size:12px;color:var(--tx2);padding:8px 10px;background:var(--s2);border-radius:6px;line-height:1.5;">${r.notes}</div>`:''}
       </div>`;
     }).join('')
@@ -401,15 +441,18 @@ function bulk1k(){
 
 function doLog(){
   const id=document.getElementById('l-item').value;
+  const customName=id==='custom'?document.getElementById('l-custom-name').value.trim():'';
+  if(id==='custom'&&!customName){showN('Enter a name for the custom service');return;}
   const km=parseInt(document.getElementById('l-km').value);
   const dt=document.getElementById('l-date').value;
   const notes=document.getElementById('l-notes').value.trim();
   if(!km||km<0){showN('Enter a valid km reading');return;}
   if(!dt){showN('Select a date');return;}
-  S.records.push({id:Date.now()+'',itemId:id,date:dt,km,notes});
+  S.records.push({id:Date.now()+'',itemId:id,customName,date:dt,km,notes});
   if(km>S.currentKm){S.currentKm=km;S.mileageLog.push({date:dt,km});}
   saveS();showN('Service record saved');
   document.getElementById('l-notes').value='';
+  document.getElementById('l-custom-name').value='';
   document.getElementById('hdr-km').textContent=S.currentKm.toLocaleString()+' km';
 }
 
